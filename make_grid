@@ -1,0 +1,55 @@
+#!/bin/bash
+
+#Pass in the filename you want to slice up as an argument to the script
+#This will slice any image into 9 square pieces so you can updload them to instagram to make a mosaic that creates the original image.
+#Yes you can download an app to do it too. But sometimes you just like to do things yourself.
+#The output is a numbered grouping called post_x.jpeg
+
+val1=`identify $1 | awk '{print $3}' | cut -d"x" -f1`
+val2=`identify $1 | awk '{print $3}' | cut -d"x" -f2`
+image=$1
+size=$val1
+
+if (($val1 == $val2))
+then
+  echo "Your image is square"
+  echo "Using the size: $val1"
+else
+  echo "Your image is not square. Determining size to use"
+  if (($val1 > $val2))
+  then
+    size=$val2
+  fi
+fi
+
+echo "Determined size: $size"
+
+mod=`expr $size % 3`
+
+if (($mod > 0))
+then
+  echo "You are not working with correct dimensions. Choosing new size evenly divisible by 3."
+  square_dim=`expr $size - $mod`
+  echo "Using new size: $square_dim"
+else
+  echo "Your format has dimensions evenly divisible by 3."
+  square_dim=$size
+fi
+
+if (($val1 == $val2))
+then
+  echo "No need to crop! Great job."
+else
+  echo "Cropping to a square."
+  crop_string=`echo $square_dim"x"$square_dim"+0+0"`
+  echo $crop_string
+  `convert $1 -gravity Center -crop $crop_string +repage "cropped_image.png"`
+  image="cropped_image.png"
+fi
+
+
+dim=`expr $square_dim / 3`
+dim_string=`echo $dim"x"$dim`
+echo "These are the dimensions for the 9 tiles: $dim_string"
+echo "Upload them to instagram in reverse numerical order!"
+convert $image +gravity -crop $dim_string post_%d.jpeg
